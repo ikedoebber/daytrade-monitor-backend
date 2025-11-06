@@ -12,11 +12,11 @@ app.use(bodyParser.json());
 
 // Configurar conexão PostgreSQL
 const pool = new Pool({
-  host: process.env.DB_HOST || 'apps_postgres',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'apps',
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'D6EA6A77B6F1AB714F16F848F5935',
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  database: process.env.DB_NAME,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
   ssl: false
 });
 
