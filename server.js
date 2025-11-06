@@ -1,4 +1,3 @@
-// server.js - Backend Day Trade API
 require('dotenv').config();
 const express = require('express');
 const { Pool } = require('pg');
@@ -8,18 +7,17 @@ const bodyParser = require('body-parser');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middlewares
 app.use(cors());
 app.use(bodyParser.json());
 
-// Configurar conexão PostgreSQL com seus dados do EasyPanel
+// Configurar conexão PostgreSQL
 const pool = new Pool({
   host: process.env.DB_HOST || 'apps_postgres',
   port: process.env.DB_PORT || 5432,
   database: process.env.DB_NAME || 'apps',
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'D6EA6A77B6F1AB714F16F848F5935',
-  ssl: false // Internal connection não precisa SSL
+  ssl: false
 });
 
 // Testar conexão
@@ -35,7 +33,6 @@ pool.query('SELECT NOW()', (err, res) => {
 // Criar tabelas
 async function initDB() {
   try {
-    // Tabela de usuários
     await pool.query(`
       CREATE TABLE IF NOT EXISTS dt_users (
         id SERIAL PRIMARY KEY,
@@ -45,7 +42,6 @@ async function initDB() {
       )
     `);
 
-    // Tabela de operações
     await pool.query(`
       CREATE TABLE IF NOT EXISTS dt_operacoes (
         id SERIAL PRIMARY KEY,
@@ -70,7 +66,6 @@ async function initDB() {
       )
     `);
 
-    // Tabela de configurações
     await pool.query(`
       CREATE TABLE IF NOT EXISTS dt_configuracoes (
         id SERIAL PRIMARY KEY,
@@ -86,7 +81,6 @@ async function initDB() {
       )
     `);
 
-    // Tabela de diários
     await pool.query(`
       CREATE TABLE IF NOT EXISTS dt_diarios (
         id SERIAL PRIMARY KEY,
@@ -103,7 +97,6 @@ async function initDB() {
       )
     `);
 
-    // Índices para performance
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_dt_operacoes_user_id ON dt_operacoes(user_id);
       CREATE INDEX IF NOT EXISTS idx_dt_operacoes_data ON dt_operacoes(data);
@@ -118,7 +111,6 @@ async function initDB() {
 
 // ============= ROTAS DE USUÁRIO =============
 
-// Login
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   
@@ -139,7 +131,6 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Cadastro
 app.post('/api/register', async (req, res) => {
   const { username, password } = req.body;
   
@@ -159,7 +150,7 @@ app.post('/api/register', async (req, res) => {
     
     res.json({ success: true, user: result.rows[0] });
   } catch (err) {
-    if (err.code === '23505') { // Unique violation
+    if (err.code === '23505') {
       return res.status(400).json({ error: 'Usuário já existe' });
     }
     console.error('Erro no registro:', err);
@@ -169,7 +160,6 @@ app.post('/api/register', async (req, res) => {
 
 // ============= ROTAS DE OPERAÇÕES =============
 
-// Listar operações
 app.get('/api/operacoes/:userId', async (req, res) => {
   const { userId } = req.params;
   
@@ -185,7 +175,6 @@ app.get('/api/operacoes/:userId', async (req, res) => {
   }
 });
 
-// Criar operação
 app.post('/api/operacoes', async (req, res) => {
   const op = req.body;
   
@@ -211,7 +200,6 @@ app.post('/api/operacoes', async (req, res) => {
   }
 });
 
-// Deletar operação
 app.delete('/api/operacoes/:id', async (req, res) => {
   const { id } = req.params;
   
@@ -226,7 +214,6 @@ app.delete('/api/operacoes/:id', async (req, res) => {
 
 // ============= ROTAS DE CONFIGURAÇÃO =============
 
-// Buscar configuração
 app.get('/api/configuracao/:userId', async (req, res) => {
   const { userId } = req.params;
   
@@ -242,7 +229,6 @@ app.get('/api/configuracao/:userId', async (req, res) => {
   }
 });
 
-// Salvar configuração
 app.post('/api/configuracao', async (req, res) => {
   const config = req.body;
   
@@ -277,7 +263,6 @@ app.post('/api/configuracao', async (req, res) => {
 
 // ============= ROTAS DE DIÁRIO =============
 
-// Listar diários
 app.get('/api/diarios/:userId', async (req, res) => {
   const { userId } = req.params;
   
@@ -293,7 +278,6 @@ app.get('/api/diarios/:userId', async (req, res) => {
   }
 });
 
-// Criar diário
 app.post('/api/diarios', async (req, res) => {
   const d = req.body;
   
@@ -315,7 +299,6 @@ app.post('/api/diarios', async (req, res) => {
   }
 });
 
-// Deletar diário
 app.delete('/api/diarios/:id', async (req, res) => {
   const { id } = req.params;
   
