@@ -98,6 +98,22 @@ async function initDB() {
     `);
 
     await pool.query(`
+      CREATE TABLE IF NOT EXISTS dt_custos (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        data DATE NOT NULL,
+        corretagem DECIMAL(10,2) DEFAULT 0,
+        emolumentos DECIMAL(10,2) DEFAULT 0,
+        registro DECIMAL(10,2) DEFAULT 0,
+        irrf DECIMAL(10,2) DEFAULT 0,
+        total DECIMAL(10,2) NOT NULL,
+        descricao TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES dt_users(id) ON DELETE CASCADE
+      )
+    `);
+
+    await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_dt_operacoes_user_id ON dt_operacoes(user_id);
       CREATE INDEX IF NOT EXISTS idx_dt_operacoes_data ON dt_operacoes(data);
       CREATE INDEX IF NOT EXISTS idx_dt_diarios_user_id ON dt_diarios(user_id);
@@ -301,12 +317,62 @@ app.post('/api/diarios', async (req, res) => {
 
 app.delete('/api/diarios/:id', async (req, res) => {
   const { id } = req.params;
-  
+
   try {
     await pool.query('DELETE FROM dt_diarios WHERE id = $1', [id]);
     res.json({ success: true });
   } catch (err) {
     console.error('Erro ao deletar diário:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============= ROTAS DE CUSTOS =============
+
+app.get('/api/custos/:userId', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const result = await pool.query(
+      'SELECT * FROM dt_custos WHERE user_id = $1 ORDER BY data DESC, created_at DESC',
+      [userId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Erro ao listar custos:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/custos', async (req, res) => {
+  const c = req.body;
+
+  try {
+    const result = await pool.query(`
+      INSERT INTO dt_custos (
+        user_id, data, corretagem, emolumentos, registro, irrf, total, descricao
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING id
+    `, [
+      c.user_id, c.data, c.corretagem || 0, c.emolumentos || 0,
+      c.registro || 0, c.irrf || 0, c.total, c.descricao
+    ]);
+
+    res.json({ success: true, id: result.rows[0].id });
+  } catch (err) {
+    console.error('Erro ao criar custo:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/custos/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await pool.query('DELETE FROM dt_custos WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Erro ao deletar custo:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -322,13 +388,14 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: '🚀 Day Trade API está rodando!',
     endpoints: {
       auth: ['/api/login', '/api/register'],
       operacoes: ['/api/operacoes/:userId', '/api/operacoes (POST/DELETE)'],
       configuracao: ['/api/configuracao/:userId', '/api/configuracao (POST)'],
       diarios: ['/api/diarios/:userId', '/api/diarios (POST/DELETE)'],
+      custos: ['/api/custos/:userId', '/api/custos (POST/DELETE)'],
       health: '/health'
     }
   });
